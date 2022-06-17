@@ -22,3 +22,9 @@ variable "subnets" {
 variable "instance_ids" {
   type = list(string)
 }
+
+variable "tg_target_type" {
+  type        = string
+  default     = "instance"
+  description = "Target group type 'instance' (default), 'ip' or 'alb'"
+}

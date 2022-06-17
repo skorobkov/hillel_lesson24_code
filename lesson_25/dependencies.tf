@@ -17,6 +17,6 @@ data "aws_subnets" "main" {
 }
 
 data "aws_route53_zone" "main" {
-    name = "fish-and-chips.pp.ua"
-    private_zone = false
+  name         = "hillel.skor.dp.ua"
+  private_zone = false
 }

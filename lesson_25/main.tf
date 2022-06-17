@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"
+  # region = "us-east-1"
 
   default_tags {
     tags = {
@@ -11,36 +11,36 @@ provider "aws" {
 }
 
 locals {
-    registry_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
-    alb_name = "example-alb"
+  registry_url = "${data.aws_caller_identity.current.account_id}.dkr.ecr.${data.aws_region.current.name}.amazonaws.com"
+  alb_name     = "example-alb"
 }
 
 resource "aws_ecr_repository" "example_app" {
-    name = var.ecr_repo_name
-    image_scanning_configuration {
-        scan_on_push = true
-    }
+  name = var.ecr_repo_name
+  image_scanning_configuration {
+    scan_on_push = true
+  }
 
-    provisioner "local-exec" {
-        command =<<EOF
+  provisioner "local-exec" {
+    command = <<EOF
 git clone ${var.git_repo_url} /tmp/example && cd /tmp/example && docker build  --platform linux/amd64 -t ${local.registry_url}/${var.ecr_repo_name} . && cd $OLDPWD
 aws ecr get-login-password | docker login --username AWS --password-stdin ${local.registry_url}
 docker push ${local.registry_url}/${var.ecr_repo_name}
 rm -rf /tmp/example
         EOF
-    }
+  }
 }
 
 module "example-ecs" {
-    source = "./modules/ecs"
+  source = "./modules/ecs"
 
-    name = "example"
-    key_name = "hillel-test"
-    instance_type = "t3a.medium"
-    docker_image = "${local.registry_url}/${var.ecr_repo_name}"
-    security_group_ids = [aws_security_group.instance_sg.id]
+  name               = "example"
+  key_name           = "hillel-test"
+  instance_type      = "t3a.medium"
+  docker_image       = "${local.registry_url}/${var.ecr_repo_name}"
+  security_group_ids = [aws_security_group.instance_sg.id]
 
-    target_group_arn = module.example_alb.tg_arn
+  target_group_arn = module.example_alb.tg_arn
 }
 
 
@@ -112,16 +112,16 @@ module "example_alb" {
   name            = local.alb_name
   security_groups = [aws_security_group.alb_sg.id]
 
-  vpc_id       = data.aws_vpc.main.id
-  subnets      = data.aws_subnets.main.ids
-  instance_ids = []
+  vpc_id         = data.aws_vpc.main.id
+  subnets        = data.aws_subnets.main.ids
+  instance_ids   = []
   tg_target_type = "ip"
 }
 
 resource "aws_route53_record" "alb" {
-    zone_id = data.aws_route53_zone.main.zone_id
-    name    = "example-app.${data.aws_route53_zone.main.name}"
-    type    = "CNAME"
-    ttl     = "300"
-    records = [module.example_alb.dns_name]
+  zone_id = data.aws_route53_zone.main.zone_id
+  name    = "example-app.${data.aws_route53_zone.main.name}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [module.example_alb.dns_name]
 }
